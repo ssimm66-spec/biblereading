@@ -116,10 +116,10 @@ body{background:var(--bg);font-family:'Noto Sans KR',sans-serif;color:var(--text
 .code-display{background:var(--faint);border-radius:10px;padding:12px;text-align:center;margin-bottom:16px}
 .code-display span{font-size:24px;font-weight:600;color:var(--accent);letter-spacing:4px}
 .code-hint{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
-.sync-btn{position:fixed;bottom:60px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(97,59,142,.3);z-index:100;transition:all .15s}
+.sync-btn{position:fixed;bottom:80px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(97,59,142,.3);z-index:100;transition:all .15s}
 .sync-btn:hover{background:var(--accent-l);transform:scale(1.05)}
 .sync-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.sync-status{position:fixed;bottom:112px;right:16px;background:var(--text);color:#fff;font-size:11px;padding:6px 10px;border-radius:8px;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
+.sync-status{position:fixed;bottom:132px;right:16px;background:var(--text);color:#fff;font-size:11px;padding:6px 10px;border-radius:8px;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
 .sync-status.show{opacity:1}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -417,7 +417,10 @@ const SUPABASE_KEY = 'PUBLISHABLE_KEY_HERE';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const CODE_KEY = 'bible_sync_code';
 
-let syncCode = localStorage.getItem(CODE_KEY) || null;
+let syncCode = null;
+// Try multiple storage methods for homescreen app compatibility
+try { syncCode = localStorage.getItem(CODE_KEY) || null; } catch(e) {}
+if(!syncCode) { try { syncCode = sessionStorage.getItem(CODE_KEY) || null; } catch(e) {} }
 
 function generateCode(){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -488,7 +491,9 @@ function showCodeChoice(){
 async function createNewCode(){
   const code = generateCode();
   syncCode = code;
-  localStorage.setItem(CODE_KEY, code);
+  try { localStorage.setItem(CODE_KEY, code); } catch(e) {}
+  try { sessionStorage.setItem(CODE_KEY, code); } catch(e) {}
+  location.hash = code;
   await syncSave();
   showMyCode();
 }
@@ -525,7 +530,9 @@ async function applyCode(){
   const ok = await syncLoad(input);
   if(ok){
     syncCode = input;
-    localStorage.setItem(CODE_KEY, input);
+    try { localStorage.setItem(CODE_KEY, input); } catch(e) {}
+    try { sessionStorage.setItem(CODE_KEY, input); } catch(e) {}
+    location.hash = input;
     closeModal();
     renderBooks();
     updateProgress();
@@ -566,6 +573,17 @@ loadState();
 renderTabs();
 renderBooks();
 updateProgress();
+// If no code stored, check URL hash
+if(!syncCode && location.hash) {
+  const hashCode = location.hash.replace('#','').toUpperCase();
+  if(hashCode.length >= 4) {
+    syncCode = hashCode;
+    try { localStorage.setItem(CODE_KEY, syncCode); } catch(e) {}
+    syncLoad(syncCode).then(ok => {
+      if(ok){ renderBooks(); updateProgress(); showStatus('✅ 자동 동기화 완료!'); }
+    });
+  }
+}
 </script>
 </body>
 </html>
