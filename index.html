@@ -493,7 +493,6 @@ async function createNewCode(){
   syncCode = code;
   try { localStorage.setItem(CODE_KEY, code); } catch(e) {}
   try { sessionStorage.setItem(CODE_KEY, code); } catch(e) {}
-  location.hash = code;
   await syncSave();
   showMyCode();
 }
@@ -532,7 +531,6 @@ async function applyCode(){
     syncCode = input;
     try { localStorage.setItem(CODE_KEY, input); } catch(e) {}
     try { sessionStorage.setItem(CODE_KEY, input); } catch(e) {}
-    location.hash = input;
     closeModal();
     renderBooks();
     updateProgress();
@@ -573,16 +571,20 @@ loadState();
 renderTabs();
 renderBooks();
 updateProgress();
-// If no code stored, check URL hash
-if(!syncCode && location.hash) {
-  const hashCode = location.hash.replace('#','').toUpperCase();
-  if(hashCode.length >= 4) {
-    syncCode = hashCode;
-    try { localStorage.setItem(CODE_KEY, syncCode); } catch(e) {}
-    syncLoad(syncCode).then(ok => {
-      if(ok){ renderBooks(); updateProgress(); showStatus('✅ 자동 동기화 완료!'); }
-    });
-  }
+// Auto show sync modal if no code (first launch or homescreen app)
+if(!syncCode) {
+  setTimeout(() => showWelcome(), 800);
+}
+
+function showWelcome(){
+  document.getElementById('modalOverlay').style.display='flex';
+  document.getElementById('modalBox').innerHTML=`
+    <h2>👋 처음 오셨나요?</h2>
+    <p>기기 간 동기화를 원하시면 코드를 입력하거나 새로 만들어주세요.<br>나중에 동기화 버튼(🔄)에서도 설정할 수 있어요.</p>
+    <button class="modal-btn" onclick="createNewCode()">새 코드 만들기</button>
+    <button class="modal-btn secondary" onclick="showEnterCode()">코드 입력하기</button>
+    <button class="modal-btn secondary" onclick="closeModal()">나중에 하기</button>
+  `;
 }
 </script>
 </body>
